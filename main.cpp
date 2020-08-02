@@ -7,7 +7,7 @@
 #include <string>
 #include <SDL.h>
 #include <SDL_image.h>
-
+#include <time.h>
 static void printSDLErrorAndReboot(void)
 {
     debugPrint("SDL_Error: %s\n", SDL_GetError());
@@ -39,6 +39,7 @@ vector2 getCoords(vector2 pos) {
 
 void game(void)
 {
+    srand((unsigned int)time(NULL));
 	SDL_Surface* imgs[12] = {};
     int done = 0;
     SDL_Window *window;
@@ -105,15 +106,31 @@ void game(void)
     }
     // Setup test pattern
     SDL_Surface* tilearray[4][4] = { nullptr };
-    for (int x = 0; x < 4; x++) {
-    	for (int y = 0; y < 4; y++) {
-    		tilearray[x][y] = imgs[(x+(y*4))%12];
-    	}
-    }
     int i = 0;
+    bool add = false;
     while (!done) {
         XVideoWaitForVBlank();
-        tilearray[i%4][i/4] = imgs[0];
+        if (add) {
+            int count = 0;
+            for (int x = 0; x < 4; x++) {
+                for (int y = 0; y < 4; y++) {
+                    if (tilearray[x][y] == nullptr) {
+                        count++;
+                    }
+                }
+            }
+            if (count == 0) {
+                done = true;
+            }
+            int rand1DPos = rand()%(count+1);
+            vector2 randPos = {rand1DPos%4,rand1DPos/4};
+            while (tilearray[randPos.x][randPos.y] != nullptr) {
+                rand1DPos++;
+                randPos = {rand1DPos%4,rand1DPos/4};
+            }
+            tilearray[randPos.x][randPos.y] = imgs[1];
+            add = false;
+        }
         /* Check for events */
         while (SDL_PollEvent(&event)) {
             switch (event.type) {
@@ -121,18 +138,19 @@ void game(void)
                 done = 1;
                 break;
             case SDL_CONTROLLERBUTTONDOWN:
+                add = true;
         		switch (event.cbutton.button) {
         			case SDL_CONTROLLER_BUTTON_DPAD_UP:
-        				tilearray[0][0] = imgs[11];
+
         				break;
         			case SDL_CONTROLLER_BUTTON_DPAD_DOWN:
-        				tilearray[1][0] = imgs[11];
+
         				break;
         			case SDL_CONTROLLER_BUTTON_DPAD_LEFT:
-        				tilearray[2][0] = imgs[11];
+
         				break;
         			case SDL_CONTROLLER_BUTTON_DPAD_RIGHT:
-        				tilearray[3][0] = imgs[11];
+
         				break;
         			default:
         				break;
