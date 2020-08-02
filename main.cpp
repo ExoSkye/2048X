@@ -8,6 +8,7 @@
 #include <SDL.h>
 #include <SDL_image.h>
 #include <time.h>
+#include <utility>
 static void printSDLErrorAndReboot(void)
 {
     debugPrint("SDL_Error: %s\n", SDL_GetError());
@@ -24,6 +25,12 @@ static void printIMGErrorAndReboot(void)
     XReboot();
 }
 
+enum direction {
+    UP,
+    DOWN,
+    LEFT,
+    RIGHT
+};
 
 struct vector2{
 	int x;
@@ -35,6 +42,30 @@ vector2 getCoords(vector2 pos) {
 	ret.x = (120+(pos.x*120))+5;
 	ret.y = (pos.y*120)+5;
 	return ret;
+}
+
+std::pair<SDL_Surface*,int>* checkCollisions(std::pair<SDL_Surface*,int> gameGrid[4][4], direction offset, SDL_Surface* imgs[12]) {
+    for (int x = 0; x < 4; x++) {
+        for (int y = 0; y < 4; y++) {
+            switch(offset) {
+                case UP:
+                    if (y != 0) {
+                        if (gameGrid[x][y-1].first == gameGrid[x][y].first) {
+                            gameGrid[x][y].first = nullptr;
+                            gameGrid[x][y-1].first = imgs[gameGrid[x][y-1].second+1];
+                        }
+                    }
+                    break;
+                case DOWN:
+                    break;
+                case LEFT:
+                    break;
+                case RIGHT:
+                    break;
+            }
+        }
+    }
+    return &gameGrid[0][0];
 }
 
 void game(void)
@@ -105,7 +136,7 @@ void game(void)
     	imgs[i] = surface;
     }
     // Setup test pattern
-    SDL_Surface* tilearray[4][4] = { nullptr };
+    std::pair<SDL_Surface*,int> tilearray[4][4] = { std::make_pair(imgs[0],0)};
     int i = 0;
     bool add = false;
     while (!done) {
@@ -114,7 +145,7 @@ void game(void)
             int count = 0;
             for (int x = 0; x < 4; x++) {
                 for (int y = 0; y < 4; y++) {
-                    if (tilearray[x][y] == nullptr) {
+                    if (tilearray[x][y].first == nullptr) {
                         count++;
                     }
                 }
@@ -124,11 +155,12 @@ void game(void)
             }
             int rand1DPos = rand()%(count+1);
             vector2 randPos = {rand1DPos%4,rand1DPos/4};
-            while (tilearray[randPos.x][randPos.y] != nullptr) {
+            while (tilearray[randPos.x][randPos.y].first != nullptr) {
                 rand1DPos++;
                 randPos = {rand1DPos%4,rand1DPos/4};
             }
-            tilearray[randPos.x][randPos.y] = imgs[1];
+            tilearray[randPos.x][randPos.y].first = imgs[1];
+            tilearray[randPos.x][randPos.y].second = 1;
             add = false;
         }
         /* Check for events */
@@ -141,7 +173,7 @@ void game(void)
                 add = true;
         		switch (event.cbutton.button) {
         			case SDL_CONTROLLER_BUTTON_DPAD_UP:
-
+                        checkCollisions(tilearray,UP,imgs);
         				break;
         			case SDL_CONTROLLER_BUTTON_DPAD_DOWN:
 
@@ -162,14 +194,12 @@ void game(void)
         }
         for (int x = 0; x < 4; x++) {
         	for (int y = 0; y < 4; y++) {
-        		if (tilearray[x][y] != nullptr) {
-        			vector2 pos;
-        			pos.x = x;
-        			pos.y = y;
-        			vector2 topleft = getCoords(pos);
-        			SDL_Rect dst = {topleft.x,topleft.y,110,110};
-        			SDL_BlitSurface(tilearray[x][y], NULL, screenSurface, &dst);
-        		}
+        		vector2 pos;
+        		pos.x = x;
+        		pos.y = y;
+        		vector2 topleft = getCoords(pos);
+        		SDL_Rect dst = {topleft.x,topleft.y,110,110};
+        		SDL_BlitSurface(tilearray[x][y].first, NULL, screenSurface, &dst);
     		}
     	}
         SDL_UpdateWindowSurface(window);
