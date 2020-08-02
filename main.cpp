@@ -92,6 +92,7 @@ void game(void)
         SDL_VideoQuit();
         printSDLErrorAndReboot();
     }
+    // Load all images
     imgs[0] = *IMG_Load("D:\\pureblack.png");
     for (int i = 1; i < 12; i++) {
     	std::string imgPath = "D:\\"+std::to_string(1<<i)+".png";
@@ -102,13 +103,17 @@ void game(void)
     	}
     	imgs[i] = *surface;
     }
+    // Setup test pattern
     SDL_Surface* tilearray[4][4] = { nullptr };
     for (int x = 0; x < 4; x++) {
     	for (int y = 0; y < 4; y++) {
     		tilearray[x][y] = &imgs[(x+(y*4))%12];
     	}
     }
+    int i = 0;
     while (!done) {
+        XVideoWaitForVBlank();
+        tilearray[i%5][i/4] = &imgs[0];
         /* Check for events */
         while (SDL_PollEvent(&event)) {
             switch (event.type) {
@@ -149,8 +154,7 @@ void game(void)
     		}
     	}
         SDL_UpdateWindowSurface(window);
-
-        XVideoWaitForVBlank();
+        i++;
     }
 
     IMG_Quit();
