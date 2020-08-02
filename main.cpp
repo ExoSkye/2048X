@@ -39,7 +39,7 @@ vector2 getCoords(vector2 pos) {
 
 void game(void)
 {
-	SDL_Surface imgs[12] = {};
+	SDL_Surface* imgs[12] = {};
     int done = 0;
     SDL_Window *window;
     SDL_Event event;
@@ -101,19 +101,19 @@ void game(void)
     		SDL_VideoQuit();
         	printSDLErrorAndReboot();
     	}
-    	imgs[i] = *surface;
+    	imgs[i] = surface;
     }
     // Setup test pattern
     SDL_Surface* tilearray[4][4] = { nullptr };
     for (int x = 0; x < 4; x++) {
     	for (int y = 0; y < 4; y++) {
-    		tilearray[x][y] = &imgs[(x+(y*4))%12];
+    		tilearray[x][y] = imgs[(x+(y*4))%12];
     	}
     }
     int i = 0;
     while (!done) {
         XVideoWaitForVBlank();
-        tilearray[i%5][i/4] = &imgs[0];
+        tilearray[i%4][i/4] = imgs[0];
         /* Check for events */
         while (SDL_PollEvent(&event)) {
             switch (event.type) {
@@ -123,20 +123,21 @@ void game(void)
             case SDL_CONTROLLERBUTTONDOWN:
         		switch (event.cbutton.button) {
         			case SDL_CONTROLLER_BUTTON_DPAD_UP:
-        				tilearray[0][0] = &imgs[11];
+        				tilearray[0][0] = imgs[11];
         				break;
         			case SDL_CONTROLLER_BUTTON_DPAD_DOWN:
-        				tilearray[1][0] = &imgs[11];
+        				tilearray[1][0] = imgs[11];
         				break;
         			case SDL_CONTROLLER_BUTTON_DPAD_LEFT:
-        				tilearray[2][0] = &imgs[11];
+        				tilearray[2][0] = imgs[11];
         				break;
         			case SDL_CONTROLLER_BUTTON_DPAD_RIGHT:
-        				tilearray[3][0] = &imgs[11];
+        				tilearray[3][0] = imgs[11];
         				break;
         			default:
         				break;
             	}
+                break;
             default:
                 break;
             }
