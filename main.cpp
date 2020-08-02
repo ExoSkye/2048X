@@ -93,7 +93,7 @@ void game(void)
         printSDLErrorAndReboot();
     }
     // Load all images
-    imgs[0] = *IMG_Load("D:\\pureblack.png");
+    imgs[0] = IMG_Load("D:\\pureblack.png");
     for (int i = 1; i < 12; i++) {
     	std::string imgPath = "D:\\"+std::to_string(1<<i)+".png";
     	SDL_Surface* surface = IMG_Load(imgPath.c_str());
