@@ -145,7 +145,7 @@ void game(void)
             int count = 0;
             for (int x = 0; x < 4; x++) {
                 for (int y = 0; y < 4; y++) {
-                    if (tilearray[x][y].first == nullptr) {
+                    if (tilearray[x][y].first == imgs[0]) {
                         count++;
                     }
                 }
