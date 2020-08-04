@@ -44,15 +44,15 @@ vector2 getCoords(vector2 pos) {
 	return ret;
 }
 
-std::pair<SDL_Surface*,int>* checkCollisions(std::pair<SDL_Surface*,int> gameGrid[4][4], direction offset, SDL_Surface* imgs[12]) {
+int* checkCollisions(int gameGrid[4][4], direction offset, SDL_Surface* imgs[12]) {
     for (int x = 0; x < 4; x++) {
         for (int y = 0; y < 4; y++) {
             switch(offset) {
                 case UP:
                     if (y != 0) {
-                        if (gameGrid[x][y-1].first == gameGrid[x][y].first) {
-                            gameGrid[x][y].first = imgs[0];
-                            gameGrid[x][y-1].first = imgs[gameGrid[x][y-1].second+1];
+                        if (gameGrid[x][y-1] == gameGrid[x][y]) {
+                            gameGrid[x][y] = 0;
+                            gameGrid[x][y-1] = gameGrid[x][y-1]+1;
                         }
                     }
                     break;
@@ -136,7 +136,7 @@ void game(void)
     	imgs[i] = surface;
     }
     // Setup test pattern
-    std::pair<SDL_Surface*,int> tilearray[4][4] = { std::make_pair(imgs[0],0)};
+    int tilearray[4][4] = { 0 };
     int i = 0;
     bool add = false;
     while (!done) {
@@ -145,7 +145,7 @@ void game(void)
             int count = 0;
             for (int x = 0; x < 4; x++) {
                 for (int y = 0; y < 4; y++) {
-                    if (tilearray[x][y].first == imgs[0]) {
+                    if (tilearray[x][y] == 0) {
                         count++;
                     }
                 }
@@ -155,12 +155,11 @@ void game(void)
             }
             int rand1DPos = rand()%(count+1);
             vector2 randPos = {rand1DPos%4,rand1DPos/4};
-            while (tilearray[randPos.x][randPos.y].first != nullptr) {
+            while (tilearray[randPos.x][randPos.y] != 0) {
                 rand1DPos++;
                 randPos = {rand1DPos%4,rand1DPos/4};
             }
-            tilearray[randPos.x][randPos.y].first = imgs[1];
-            tilearray[randPos.x][randPos.y].second = 1;
+            tilearray[randPos.x][randPos.y] = 1;
             add = false;
         }
         /* Check for events */
@@ -199,7 +198,7 @@ void game(void)
         		pos.y = y;
         		vector2 topleft = getCoords(pos);
         		SDL_Rect dst = {topleft.x,topleft.y,110,110};
-        		SDL_BlitSurface(tilearray[x][y].first, NULL, screenSurface, &dst);
+        		SDL_BlitSurface(imgs[tilearray[x][y]], NULL, screenSurface, &dst);
     		}
     	}
         SDL_UpdateWindowSurface(window);
@@ -208,6 +207,7 @@ void game(void)
 
     IMG_Quit();
     SDL_Quit();
+    XReboot();
 }
 
 int main(void)
