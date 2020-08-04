@@ -9,6 +9,12 @@
 #include <SDL_image.h>
 #include <time.h>
 #include <utility>
+#include <map>
+
+struct collisionRet {
+    bool collided;
+    int* retGrid;
+};
 static void printSDLErrorAndReboot(void)
 {
     debugPrint("SDL_Error: %s\n", SDL_GetError());
@@ -32,10 +38,30 @@ enum direction {
     RIGHT
 };
 
-struct vector2{
-	int x;
-	int y;
+class vector2{
+public:
+    int x;
+    int y;
+    vector2() {
+        x = 0;
+        y = 0;
+    }
+    vector2(int inx, int iny) {
+        x = inx;
+        y = iny;
+    }
+    vector2 operator+(vector2 other) {
+        return vector2{x+other.x,y+other.y};
+    }
+    vector2& operator+=(vector2 other) {
+        x += other.x;
+        y += other.y;
+        return *this;
+    }
 };
+
+vector2 offsets[4] = {{0,-1},{0,1},{-1,0},{1,0}};
+
 
 vector2 getCoords(vector2 pos) {
 	vector2 ret;
@@ -44,28 +70,29 @@ vector2 getCoords(vector2 pos) {
 	return ret;
 }
 
-int* checkCollisions(int gameGrid[4][4], direction offset, SDL_Surface* imgs[12]) {
+collisionRet handleMovement(int gameGrid[4][4], direction offset, SDL_Surface* imgs[12]) {
+    bool collided = false;
     for (int x = 0; x < 4; x++) {
         for (int y = 0; y < 4; y++) {
-            switch(offset) {
-                case UP:
-                    if (y != 0) {
-                        if (gameGrid[x][y-1] == gameGrid[x][y]) {
-                            gameGrid[x][y] = 0;
-                            gameGrid[x][y-1] = gameGrid[x][y-1]+1;
-                        }
+            if (gameGrid[x][y] != 0) {
+                vector2 offset_vec = offsets[(int) offset];
+                vector2 next_vec{x, y};
+                while (next_vec.x > 0 && next_vec.x < 4 && next_vec.y > 0 && next_vec.y < 4) {
+                    vector2 checking_vec = next_vec;
+                    next_vec += offset_vec;
+                    if (gameGrid[checking_vec.x][checking_vec.y] == gameGrid[next_vec.x][next_vec.y]) {
+                        collided = true;
+                        gameGrid[next_vec.x][next_vec.y] += 1;
                     }
-                    break;
-                case DOWN:
-                    break;
-                case LEFT:
-                    break;
-                case RIGHT:
-                    break;
+                    else if (gameGrid[next_vec.x][next_vec.y] == 0) {
+                        gameGrid[next_vec.x][next_vec.y] = gameGrid[checking_vec.x][checking_vec.y];
+                        gameGrid[checking_vec.x][checking_vec.y] = 0;
+                    }
+                }
             }
         }
     }
-    return &gameGrid[0][0];
+    return {collided,&gameGrid[0][0]};
 }
 
 void game(void)
@@ -170,19 +197,36 @@ void game(void)
                 break;
             case SDL_CONTROLLERBUTTONDOWN:
                 add = true;
+                collisionRet ret;
         		switch (event.cbutton.button) {
         			case SDL_CONTROLLER_BUTTON_DPAD_UP:
-                        checkCollisions(tilearray,UP,imgs);
+                        ret = handleMovement(tilearray,UP,imgs);
+                        *tilearray[0] = *ret.retGrid;
+                        if (ret.collided) {
+                            add = false;
+                        }
         				break;
         			case SDL_CONTROLLER_BUTTON_DPAD_DOWN:
-
-        				break;
+                        ret = handleMovement(tilearray,DOWN,imgs);
+                        *tilearray[0] = *ret.retGrid;
+                        if (ret.collided) {
+                            add = false;
+                        }
+                        break;
         			case SDL_CONTROLLER_BUTTON_DPAD_LEFT:
-
-        				break;
+                        ret = handleMovement(tilearray,LEFT,imgs);
+                        *tilearray[0] = *ret.retGrid;
+                        if (ret.collided) {
+                            add = false;
+                        }
+                        break;
         			case SDL_CONTROLLER_BUTTON_DPAD_RIGHT:
-
-        				break;
+                        ret = handleMovement(tilearray,RIGHT,imgs);
+                        *tilearray[0] = *ret.retGrid;
+                        if (ret.collided) {
+                            add = false;
+                        }
+                        break;
         			default:
         				break;
             	}
