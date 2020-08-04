@@ -4,8 +4,8 @@ SRCS = $(CURDIR)/main.cpp
 NXDK_DIR = $(CURDIR)/../..
 NXDK_SDL = y
 NXDK_CXX = y
-makeandmove: cp_img all movetoshareddir
 all_local: cp_img all
+makeandmove: cp_img all
 
 include $(NXDK_DIR)/Makefile
 

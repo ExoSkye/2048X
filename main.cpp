@@ -51,7 +51,7 @@ std::pair<SDL_Surface*,int>* checkCollisions(std::pair<SDL_Surface*,int> gameGri
                 case UP:
                     if (y != 0) {
                         if (gameGrid[x][y-1].first == gameGrid[x][y].first) {
-                            gameGrid[x][y].first = nullptr;
+                            gameGrid[x][y].first = imgs[0];
                             gameGrid[x][y-1].first = imgs[gameGrid[x][y-1].second+1];
                         }
                     }
