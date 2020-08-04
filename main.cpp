@@ -83,6 +83,7 @@ collisionRet handleMovement(int gameGrid[4][4], direction offset, SDL_Surface* i
                     if (gameGrid[checking_vec.x][checking_vec.y] == gameGrid[next_vec.x][next_vec.y]) {
                         collided = true;
                         gameGrid[next_vec.x][next_vec.y] += 1;
+                        break;
                     }
                     else if (gameGrid[next_vec.x][next_vec.y] == 0) {
                         gameGrid[next_vec.x][next_vec.y] = gameGrid[checking_vec.x][checking_vec.y];
@@ -201,35 +202,23 @@ void game(void)
         		switch (event.cbutton.button) {
         			case SDL_CONTROLLER_BUTTON_DPAD_UP:
                         ret = handleMovement(tilearray,UP,imgs);
-                        *tilearray[0] = *ret.retGrid;
-                        if (ret.collided) {
-                            add = false;
-                        }
-        				break;
+                        break;
         			case SDL_CONTROLLER_BUTTON_DPAD_DOWN:
                         ret = handleMovement(tilearray,DOWN,imgs);
-                        *tilearray[0] = *ret.retGrid;
-                        if (ret.collided) {
-                            add = false;
-                        }
                         break;
         			case SDL_CONTROLLER_BUTTON_DPAD_LEFT:
                         ret = handleMovement(tilearray,LEFT,imgs);
-                        *tilearray[0] = *ret.retGrid;
-                        if (ret.collided) {
-                            add = false;
-                        }
                         break;
         			case SDL_CONTROLLER_BUTTON_DPAD_RIGHT:
                         ret = handleMovement(tilearray,RIGHT,imgs);
-                        *tilearray[0] = *ret.retGrid;
-                        if (ret.collided) {
-                            add = false;
-                        }
                         break;
         			default:
         				break;
             	}
+            	*tilearray[0] = *ret.retGrid;
+        		if (ret.collided) {
+                    add = false;
+                }
                 break;
             default:
                 break;
