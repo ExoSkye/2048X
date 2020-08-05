@@ -1,19 +1,32 @@
-#include <hal/debug.h>
-#include <hal/xbox.h>
-#include <hal/video.h>
-#include <windows.h>
 #include <stdio.h>
-#include <string.h>
 #include <string>
 #include <SDL.h>
 #include <SDL_image.h>
 #include <time.h>
 #include <utility>
-#include <map>
+#include <vector>
+#if defined(NXDK)
+#include <hal/debug.h>
+#include <hal/xbox.h>
+#include <hal/video.h>
+#include <windows.h>
+#define PATH_SEP "\\"
+#define DATA_PATH "D:" PATH_SEP
+#else
+#define debugPrint(...) printf(__VA_ARGS__)
+#define XVideoSetMode(...)
+#define Sleep(x) SDL_Delay(x)
+#define XReboot(...) exit(555)
+#define XVideoWaitForVBlank(...) SDL_Delay(1000/60-1)
+#define PATH_SEP "/"
+#define DATA_PATH "." PATH_SEP
+#endif
+
+#define SQUARE_SIZE 4
 
 struct collisionRet {
-    bool collided;
-    int* retGrid;
+    bool collided = false;
+    std::vector<std::vector<int>> retGrid;
 };
 static void printSDLErrorAndReboot(void)
 {
@@ -30,6 +43,8 @@ static void printIMGErrorAndReboot(void)
     Sleep(5000);
     XReboot();
 }
+
+
 
 enum direction {
     UP,
@@ -58,11 +73,45 @@ public:
         y += other.y;
         return *this;
     }
+    vector2& operator-=(vector2 other) {
+        x -= other.x;
+        y -= other.y;
+        return *this;
+    }
+    vector2 operator-(vector2 other) {
+        return vector2{x-other.x,y-other.y};
+    }
 };
 
 vector2 offsets[4] = {{0,-1},{0,1},{-1,0},{1,0}};
 
+struct tileRet {
+    std::vector<std::vector<int>> ret;
+    bool done;
+};
 
+tileRet addTile(std::vector<std::vector<int>> tilearray) {
+    bool done = false;
+    int count = 0;
+    for (int x = 0; x < 4; x++) {
+        for (int y = 0; y < SQUARE_SIZE; y++) {
+            if (tilearray[x][y] == 0) {
+                count++;
+            }
+        }
+    }
+    if (count == 0) {
+        done = true;
+    }
+    int rand1DPos = rand()%(count+1);
+    vector2 randPos = {rand1DPos%SQUARE_SIZE,rand1DPos/SQUARE_SIZE};
+    while (tilearray[randPos.x][randPos.y] != 0) {
+        rand1DPos++;
+        randPos = {rand1DPos%SQUARE_SIZE,rand1DPos/SQUARE_SIZE};
+    }
+    tilearray[randPos.x][randPos.y] = 1;
+    return {tilearray,done};
+}
 vector2 getCoords(vector2 pos) {
 	vector2 ret;
 	ret.x = (120+(pos.x*120))+5;
@@ -70,30 +119,37 @@ vector2 getCoords(vector2 pos) {
 	return ret;
 }
 
-collisionRet handleMovement(int gameGrid[4][4], direction offset, SDL_Surface* imgs[12]) {
+collisionRet handleMovement(std::vector<std::vector<int>> gameGrid, direction offset, SDL_Surface* imgs[12]) {
     bool collided = false;
     for (int x = 0; x < 4; x++) {
         for (int y = 0; y < 4; y++) {
             if (gameGrid[x][y] != 0) {
                 vector2 offset_vec = offsets[(int) offset];
-                vector2 next_vec{x, y};
-                while (next_vec.x > 0 && next_vec.x < 4 && next_vec.y > 0 && next_vec.y < 4) {
-                    vector2 checking_vec = next_vec;
-                    next_vec += offset_vec;
-                    if (gameGrid[checking_vec.x][checking_vec.y] == gameGrid[next_vec.x][next_vec.y]) {
+                vector2 temp_vec{x,y};
+                bool local_collision = false;
+                temp_vec+=offset_vec;
+                while (!(temp_vec.x < 0 || temp_vec.x > 3 || temp_vec.y < 0 || temp_vec.y > 3)) {
+                    if (gameGrid[temp_vec.x][temp_vec.y] == gameGrid[x][y]) {
                         collided = true;
-                        gameGrid[next_vec.x][next_vec.y] += 1;
+                        local_collision = true;
                         break;
                     }
-                    else if (gameGrid[next_vec.x][next_vec.y] == 0) {
-                        gameGrid[next_vec.x][next_vec.y] = gameGrid[checking_vec.x][checking_vec.y];
-                        gameGrid[checking_vec.x][checking_vec.y] = 0;
+                    else if (gameGrid[temp_vec.x][temp_vec.y] != 0) {
+                        break;
                     }
+                    temp_vec+=offset_vec;
                 }
+                int offset = 0;
+                if (local_collision) {
+                    offset = 1;
+                }
+                temp_vec-=offset_vec;
+                gameGrid[temp_vec.x][temp_vec.y] = gameGrid[x][y] + offset;
+                gameGrid[x][y] = 0;
             }
         }
     }
-    return {collided,&gameGrid[0][0]};
+    return {collided,gameGrid};
 }
 
 void game(void)
@@ -153,9 +209,9 @@ void game(void)
         printSDLErrorAndReboot();
     }
     // Load all images
-    imgs[0] = IMG_Load("D:\\pureblack.png");
+    imgs[0] = IMG_Load(DATA_PATH"pureblack.png");
     for (int i = 1; i < 12; i++) {
-    	std::string imgPath = "D:\\"+std::to_string(1<<i)+".png";
+    	std::string imgPath = DATA_PATH+std::to_string(1<<i)+".png";
     	SDL_Surface* surface = IMG_Load(imgPath.c_str());
     	if (!surface) {
     		SDL_VideoQuit();
@@ -164,64 +220,50 @@ void game(void)
     	imgs[i] = surface;
     }
     // Setup test pattern
-    int tilearray[4][4] = { 0 };
+    std::vector<std::vector<int>> tilearray;
+    for (int i = 0; i < SQUARE_SIZE; i++) {
+        tilearray.push_back(std::vector<int>());
+    }
+    for (int i = 0; i < SQUARE_SIZE; i++) {
+        for (int j = 0; j < SQUARE_SIZE; j++) {
+            tilearray[i].push_back(0);
+        }
+    }
+    for (int i = 0; i < 2; i++) {
+        tilearray = addTile(tilearray).ret;
+    }
     int i = 0;
-    bool add = false;
     while (!done) {
         XVideoWaitForVBlank();
-        if (add) {
-            int count = 0;
-            for (int x = 0; x < 4; x++) {
-                for (int y = 0; y < 4; y++) {
-                    if (tilearray[x][y] == 0) {
-                        count++;
-                    }
-                }
-            }
-            if (count == 0) {
-                done = true;
-            }
-            int rand1DPos = rand()%(count+1);
-            vector2 randPos = {rand1DPos%4,rand1DPos/4};
-            while (tilearray[randPos.x][randPos.y] != 0) {
-                rand1DPos++;
-                randPos = {rand1DPos%4,rand1DPos/4};
-            }
-            tilearray[randPos.x][randPos.y] = 1;
-            add = false;
-        }
         /* Check for events */
         while (SDL_PollEvent(&event)) {
             switch (event.type) {
-            case SDL_QUIT:
-                done = 1;
-                break;
-            case SDL_CONTROLLERBUTTONDOWN:
-                add = true;
-                collisionRet ret;
-        		switch (event.cbutton.button) {
-        			case SDL_CONTROLLER_BUTTON_DPAD_UP:
-                        ret = handleMovement(tilearray,UP,imgs);
-                        break;
-        			case SDL_CONTROLLER_BUTTON_DPAD_DOWN:
-                        ret = handleMovement(tilearray,DOWN,imgs);
-                        break;
-        			case SDL_CONTROLLER_BUTTON_DPAD_LEFT:
-                        ret = handleMovement(tilearray,LEFT,imgs);
-                        break;
-        			case SDL_CONTROLLER_BUTTON_DPAD_RIGHT:
-                        ret = handleMovement(tilearray,RIGHT,imgs);
-                        break;
-        			default:
-        				break;
-            	}
-            	*tilearray[0] = *ret.retGrid;
-        		if (ret.collided) {
-                    add = false;
-                }
-                break;
-            default:
-                break;
+                case SDL_QUIT:
+                    done = 1;
+                    break;
+                case SDL_CONTROLLERBUTTONDOWN:
+                    collisionRet ret = {false,std::vector<std::vector<int>>()};
+                    switch (event.cbutton.button) {
+                        case SDL_CONTROLLER_BUTTON_DPAD_UP:
+                            ret = handleMovement(tilearray, UP, imgs);
+                            break;
+                        case SDL_CONTROLLER_BUTTON_DPAD_DOWN:
+                            ret = handleMovement(tilearray, DOWN, imgs);
+                            break;
+                        case SDL_CONTROLLER_BUTTON_DPAD_LEFT:
+                            ret = handleMovement(tilearray, LEFT, imgs);
+                            break;
+                        case SDL_CONTROLLER_BUTTON_DPAD_RIGHT:
+                            ret = handleMovement(tilearray, RIGHT, imgs);
+                            break;
+                        default:
+                            break;
+                    }
+                    tilearray = ret.retGrid;
+                    if (!ret.collided) {
+                        tilearray = addTile(tilearray).ret;
+                    }
+                    break;
             }
         }
         for (int x = 0; x < 4; x++) {

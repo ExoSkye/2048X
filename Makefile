@@ -7,6 +7,9 @@ NXDK_CXX = y
 all_local: cp_img all
 makeandmove: cp_img all
 
+make_host:
+	g++ main.cpp  -lSDL2 -I/usr/include/SDL2 -lSDL2_image -g -Og
+
 include $(NXDK_DIR)/Makefile
 
 git_push:
