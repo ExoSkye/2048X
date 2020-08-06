@@ -8,7 +8,7 @@ all_local: cp_img all
 makeandmove: cp_img all
 
 make_host:
-	g++ main.cpp  -lSDL2 -I/usr/include/SDL2 -lSDL2_image -g -Og
+	g++ main.cpp  -lSDL2 -I/usr/include/SDL2 -lSDL2_image -O0 -g
 
 include $(NXDK_DIR)/Makefile
 

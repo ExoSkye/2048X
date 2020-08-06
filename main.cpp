@@ -22,7 +22,7 @@
 #define DATA_PATH "." PATH_SEP
 #endif
 
-#define SQUARE_SIZE 4
+#define SQUARE_SIZE 5
 
 struct collisionRet {
     bool collided = false;
@@ -93,7 +93,7 @@ struct tileRet {
 tileRet addTile(std::vector<std::vector<int>> tilearray) {
     bool done = false;
     int count = 0;
-    for (int x = 0; x < 4; x++) {
+    for (int x = 0; x < SQUARE_SIZE; x++) {
         for (int y = 0; y < SQUARE_SIZE; y++) {
             if (tilearray[x][y] == 0) {
                 count++;
@@ -114,21 +114,22 @@ tileRet addTile(std::vector<std::vector<int>> tilearray) {
 }
 vector2 getCoords(vector2 pos) {
 	vector2 ret;
-	ret.x = (120+(pos.x*120))+5;
-	ret.y = (pos.y*120)+5;
+	int tileSize = 480 / SQUARE_SIZE;
+	ret.x = (pos.x * tileSize);
+	ret.y = (pos.y * tileSize);
 	return ret;
 }
 
 collisionRet handleMovement(std::vector<std::vector<int>> gameGrid, direction offset, SDL_Surface* imgs[12]) {
     bool collided = false;
-    for (int x = 0; x < 4; x++) {
-        for (int y = 0; y < 4; y++) {
+    for (int x = 0; x < SQUARE_SIZE; x++) {
+        for (int y = 0; y < SQUARE_SIZE; y++) {
             if (gameGrid[x][y] != 0) {
                 vector2 offset_vec = offsets[(int) offset];
                 vector2 temp_vec{x,y};
                 bool local_collision = false;
                 temp_vec+=offset_vec;
-                while (!(temp_vec.x < 0 || temp_vec.x > 3 || temp_vec.y < 0 || temp_vec.y > 3)) {
+                while (!(temp_vec.x < 0 || temp_vec.x > SQUARE_SIZE-1 || temp_vec.y < 0 || temp_vec.y > SQUARE_SIZE-1)) {
                     if (gameGrid[temp_vec.x][temp_vec.y] == gameGrid[x][y]) {
                         collided = true;
                         local_collision = true;
@@ -273,7 +274,7 @@ void game(void)
         		pos.y = y;
         		vector2 topleft = getCoords(pos);
         		SDL_Rect dst = {topleft.x,topleft.y,110,110};
-        		SDL_BlitSurface(imgs[tilearray[x][y]], NULL, screenSurface, &dst);
+        		SDL_BlitScaled(imgs[tilearray[x][y]], NULL, screenSurface, &dst);
     		}
     	}
         SDL_UpdateWindowSurface(window);
