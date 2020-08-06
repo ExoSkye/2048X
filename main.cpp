@@ -27,6 +27,7 @@
 struct collisionRet {
     bool collided = false;
     std::vector<std::vector<int>> retGrid;
+    bool actuallydone = false;
 };
 static void printSDLErrorAndReboot(void)
 {
@@ -150,7 +151,7 @@ collisionRet handleMovement(std::vector<std::vector<int>> gameGrid, direction of
             }
         }
     }
-    return {collided,gameGrid};
+    return {collided,gameGrid,true};
 }
 
 void game(void)
@@ -243,7 +244,7 @@ void game(void)
                     done = 1;
                     break;
                 case SDL_CONTROLLERBUTTONDOWN:
-                    collisionRet ret = {false,tilearray};
+                    collisionRet ret = {false,tilearray,false};
                     switch (event.cbutton.button) {
                         case SDL_CONTROLLER_BUTTON_DPAD_UP:
                             ret = handleMovement(tilearray, UP, imgs);
@@ -261,14 +262,14 @@ void game(void)
                             break;
                     }
                     tilearray = ret.retGrid;
-                    if (!ret.collided) {
+                    if (!ret.collided && ret.actuallydone) {
                         tilearray = addTile(tilearray).ret;
                     }
                     break;
             }
         }
-        for (int x = 0; x < 4; x++) {
-        	for (int y = 0; y < 4; y++) {
+        for (int x = 0; x < SQUARE_SIZE; x++) {
+        	for (int y = 0; y < SQUARE_SIZE; y++) {
         		vector2 pos;
         		pos.x = x;
         		pos.y = y;
