@@ -243,7 +243,7 @@ void game(void)
                     done = 1;
                     break;
                 case SDL_CONTROLLERBUTTONDOWN:
-                    collisionRet ret = {false,std::vector<std::vector<int>>()};
+                    collisionRet ret = {false,tilearray};
                     switch (event.cbutton.button) {
                         case SDL_CONTROLLER_BUTTON_DPAD_UP:
                             ret = handleMovement(tilearray, UP, imgs);
