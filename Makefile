@@ -8,18 +8,10 @@ all_local: cp_img all
 makeandmove: cp_img all
 
 make_host:
-	g++ main.cpp  -lSDL2 -I/usr/include/SDL2 -lSDL2_image -O0 -g
+	g++ main.cpp  -lSDL2 -I/usr/include/SDL2 -lSDL2_image -O0 -g -D _DEBUG
 
 include $(NXDK_DIR)/Makefile
-
-git_push:
-	git add .
-	git stage .
-	git commit
-	git push
 
 cp_img:
 	@mkdir -p $(OUTPUT_DIR)
 	cp *.png $(OUTPUT_DIR)/
-movetoshareddir:
-	cp 2048.iso "/home/bob/shares/Shared Folder/"

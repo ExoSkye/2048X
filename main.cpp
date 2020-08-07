@@ -5,6 +5,7 @@
 #include <time.h>
 #include <utility>
 #include <vector>
+#include <algorithm>
 #if defined(NXDK)
 #include <hal/debug.h>
 #include <hal/xbox.h>
@@ -45,7 +46,19 @@ static void printIMGErrorAndReboot(void)
     XReboot();
 }
 
-
+void printMultidimensionalVector(std::vector<std::vector<int>> vec, std::string message = "") {
+#ifdef _DEBUG
+    printf(message.c_str());
+    printf("\nSTART OF VEC:\n");
+    for (auto row : vec) {
+        for (auto col : row) {
+            printf("%u ",col);
+        }
+        printf("\n");
+    }
+    printf("END OF VEC;\n");
+#endif
+}
 
 enum direction {
     UP,
@@ -66,21 +79,24 @@ public:
         x = inx;
         y = iny;
     }
-    vector2 operator+(vector2 other) {
+    vector2 operator+(vector2 const& other) {
         return vector2{x+other.x,y+other.y};
     }
-    vector2& operator+=(vector2 other) {
+    vector2& operator+=(vector2 const& other) {
         x += other.x;
         y += other.y;
         return *this;
     }
-    vector2& operator-=(vector2 other) {
+    vector2& operator-=(vector2 const& other) {
         x -= other.x;
         y -= other.y;
         return *this;
     }
-    vector2 operator-(vector2 other) {
+    vector2 operator-(vector2 const& other) {
         return vector2{x-other.x,y-other.y};
+    }
+    bool operator==(vector2 const& other) {
+        return (x == other.x && y == other.y);
     }
 };
 
@@ -120,23 +136,22 @@ vector2 getCoords(vector2 pos) {
 	ret.y = (pos.y * tileSize);
 	return ret;
 }
-
+std::string tileMove[4] = {"UP","DOWN","LEFT","RIGHT"};
 collisionRet handleMovement(std::vector<std::vector<int>> gameGrid, direction offset, SDL_Surface* imgs[12]) {
     bool collided = false;
+    std::vector<std::vector<int>> scanGrid = gameGrid;
+    vector2 offset_vec = offsets[(int) offset];
+    printMultidimensionalVector(gameGrid,"Start of function\nMoving tiles "+tileMove[(int)offset]+" at offset "+std::to_string((int) offset));
     for (int x = 0; x < SQUARE_SIZE; x++) {
         for (int y = 0; y < SQUARE_SIZE; y++) {
-            if (gameGrid[x][y] != 0) {
-                vector2 offset_vec = offsets[(int) offset];
+            if (scanGrid[x][y] != 0) {
                 vector2 temp_vec{x,y};
                 bool local_collision = false;
                 temp_vec+=offset_vec;
                 while (!(temp_vec.x < 0 || temp_vec.x > SQUARE_SIZE-1 || temp_vec.y < 0 || temp_vec.y > SQUARE_SIZE-1)) {
-                    if (gameGrid[temp_vec.x][temp_vec.y] == gameGrid[x][y]) {
+                    if (scanGrid[temp_vec.x][temp_vec.y] == scanGrid[x][y]) {
                         collided = true;
                         local_collision = true;
-                        break;
-                    }
-                    else if (gameGrid[temp_vec.x][temp_vec.y] != 0) {
                         break;
                     }
                     temp_vec+=offset_vec;
@@ -145,12 +160,16 @@ collisionRet handleMovement(std::vector<std::vector<int>> gameGrid, direction of
                 if (local_collision) {
                     offset = 1;
                 }
-                temp_vec-=offset_vec;
+                else {
+                    temp_vec -= offset_vec;
+                }
                 gameGrid[temp_vec.x][temp_vec.y] = gameGrid[x][y] + offset;
                 gameGrid[x][y] = 0;
+                printMultidimensionalVector(gameGrid,"After algorithm for one tile");
             }
         }
     }
+    printMultidimensionalVector(gameGrid,"After entire algorithm");
     return {collided,gameGrid,true};
 }
 
@@ -284,7 +303,7 @@ void game(void)
 
     IMG_Quit();
     SDL_Quit();
-    XReboot();
+    exit(1);
 }
 
 int main(void)
