@@ -1,9 +1,8 @@
-#include <stdio.h>
+#include <cstdio>
 #include <string>
 #include <SDL.h>
 #include <SDL_image.h>
-#include <time.h>
-#include <utility>
+#include <ctime>
 #include <vector>
 #include <algorithm>
 #if defined(NXDK)
@@ -23,14 +22,14 @@
 #define DATA_PATH "." PATH_SEP
 #endif
 
-#define SQUARE_SIZE 5
+#define SQUARE_SIZE 2
 
 struct collisionRet {
     bool collided = false;
     std::vector<std::vector<int>> retGrid;
-    bool actuallydone = false;
+    bool actuallyDone = false;
 };
-static void printSDLErrorAndReboot(void)
+static void printSDLErrorAndReboot()
 {
     debugPrint("SDL_Error: %s\n", SDL_GetError());
     debugPrint("Rebooting in 5 seconds.\n");
@@ -38,7 +37,7 @@ static void printSDLErrorAndReboot(void)
     XReboot();
 }
 
-static void printIMGErrorAndReboot(void)
+static void printIMGErrorAndReboot()
 {
     debugPrint("SDL_Image Error: %s\n", IMG_GetError());
     debugPrint("Rebooting in 5 seconds.\n");
@@ -46,11 +45,11 @@ static void printIMGErrorAndReboot(void)
     XReboot();
 }
 
-void printMultidimensionalVector(std::vector<std::vector<int>> vec, std::string message = "") {
+void printMultidimensionalVector(const std::vector<std::vector<int>>& vec, const std::string& message = "") {
 #ifdef _DEBUG
-    printf(message.c_str());
+    printf("%s", message.c_str());
     printf("\nSTART OF VEC:\n");
-    for (auto row : vec) {
+    for (const auto& row : vec) {
         for (auto col : row) {
             printf("%u ",col);
         }
@@ -79,7 +78,7 @@ public:
         x = inx;
         y = iny;
     }
-    vector2 operator+(vector2 const& other) {
+    vector2 operator+(vector2 const& other) const {
         return vector2{x+other.x,y+other.y};
     }
     vector2& operator+=(vector2 const& other) {
@@ -92,10 +91,10 @@ public:
         y -= other.y;
         return *this;
     }
-    vector2 operator-(vector2 const& other) {
+    vector2 operator-(vector2 const& other) const {
         return vector2{x-other.x,y-other.y};
     }
-    bool operator==(vector2 const& other) {
+    bool operator==(vector2 const& other) const {
         return (x == other.x && y == other.y);
     }
 };
@@ -124,6 +123,7 @@ tileRet addTile(std::vector<std::vector<int>> tilearray) {
     vector2 randPos = {rand1DPos%SQUARE_SIZE,rand1DPos/SQUARE_SIZE};
     while (tilearray[randPos.x][randPos.y] != 0) {
         rand1DPos++;
+        rand1DPos %= static_cast<int>(pow(SQUARE_SIZE,2))+1;
         randPos = {rand1DPos%SQUARE_SIZE,rand1DPos/SQUARE_SIZE};
     }
     tilearray[randPos.x][randPos.y] = 1;
@@ -132,12 +132,12 @@ tileRet addTile(std::vector<std::vector<int>> tilearray) {
 vector2 getCoords(vector2 pos) {
 	vector2 ret;
 	int tileSize = 480 / SQUARE_SIZE;
-	ret.x = (pos.x * tileSize);
+	ret.x = 120 + (pos.x * tileSize);
 	ret.y = (pos.y * tileSize);
 	return ret;
 }
 std::string tileMove[4] = {"UP","DOWN","LEFT","RIGHT"};
-collisionRet handleMovement(std::vector<std::vector<int>> gameGrid, direction offset, SDL_Surface* imgs[12]) {
+collisionRet handleMovement(std::vector<std::vector<int>> gameGrid, direction offset) {
     bool collided = false;
     std::vector<std::vector<int>> scanGrid = gameGrid;
     vector2 offset_vec = offsets[(int) offset];
@@ -156,14 +156,14 @@ collisionRet handleMovement(std::vector<std::vector<int>> gameGrid, direction of
                     }
                     temp_vec+=offset_vec;
                 }
-                int offset = 0;
+                int tileoffset = 0;
                 if (local_collision) {
-                    offset = 1;
+                    tileoffset = 1;
                 }
                 else {
                     temp_vec -= offset_vec;
                 }
-                gameGrid[temp_vec.x][temp_vec.y] = gameGrid[x][y] + offset;
+                gameGrid[temp_vec.x][temp_vec.y] = gameGrid[x][y] + tileoffset;
                 gameGrid[x][y] = 0;
                 printMultidimensionalVector(gameGrid,"After algorithm for one tile");
             }
@@ -173,15 +173,15 @@ collisionRet handleMovement(std::vector<std::vector<int>> gameGrid, direction of
     return {collided,gameGrid,true};
 }
 
-void game(void)
+void game()
 {
-    srand((unsigned int)time(NULL));
+    srand((unsigned int)time(nullptr));
 	SDL_Surface* imgs[12] = {};
     int done = 0;
     SDL_Window *window;
     SDL_Event event;
     SDL_Surface *screenSurface;
-    SDL_GameController* gameController = NULL;
+    SDL_GameController* gameController = nullptr;
 
     /* Enable standard application logging */
     SDL_LogSetPriority(SDL_LOG_CATEGORY_APPLICATION, SDL_LOG_PRIORITY_INFO);
@@ -201,7 +201,7 @@ void game(void)
     	if (SDL_IsGameController(0)) {
     		gameController = SDL_GameControllerOpen(0);
     	}
-    	if (gameController == NULL) {
+    	if (gameController == nullptr) {
     		printSDLErrorAndReboot();
     	}
     }
@@ -211,7 +211,7 @@ void game(void)
         SDL_WINDOWPOS_UNDEFINED,
         640, 480,
         SDL_WINDOW_SHOWN);
-    if(window == NULL)
+    if(window == nullptr)
     {
         debugPrint( "Window could not be created!\n");
         SDL_VideoQuit();
@@ -243,19 +243,19 @@ void game(void)
     // Setup test pattern
     std::vector<std::vector<int>> tilearray;
     for (int i = 0; i < SQUARE_SIZE; i++) {
-        tilearray.push_back(std::vector<int>());
+        tilearray.emplace_back(std::vector<int>());
     }
     for (int i = 0; i < SQUARE_SIZE; i++) {
         for (int j = 0; j < SQUARE_SIZE; j++) {
-            tilearray[i].push_back(0);
+            tilearray[i].emplace_back(0);
         }
     }
     for (int i = 0; i < 2; i++) {
         tilearray = addTile(tilearray).ret;
     }
-    int i = 0;
     while (!done) {
         XVideoWaitForVBlank();
+        printMultidimensionalVector(tilearray,"FRAME START");
         /* Check for events */
         while (SDL_PollEvent(&event)) {
             switch (event.type) {
@@ -266,22 +266,22 @@ void game(void)
                     collisionRet ret = {false,tilearray,false};
                     switch (event.cbutton.button) {
                         case SDL_CONTROLLER_BUTTON_DPAD_UP:
-                            ret = handleMovement(tilearray, UP, imgs);
+                            ret = handleMovement(tilearray, UP);
                             break;
                         case SDL_CONTROLLER_BUTTON_DPAD_DOWN:
-                            ret = handleMovement(tilearray, DOWN, imgs);
+                            ret = handleMovement(tilearray, DOWN);
                             break;
                         case SDL_CONTROLLER_BUTTON_DPAD_LEFT:
-                            ret = handleMovement(tilearray, LEFT, imgs);
+                            ret = handleMovement(tilearray, LEFT);
                             break;
                         case SDL_CONTROLLER_BUTTON_DPAD_RIGHT:
-                            ret = handleMovement(tilearray, RIGHT, imgs);
+                            ret = handleMovement(tilearray, RIGHT);
                             break;
                         default:
                             break;
                     }
                     tilearray = ret.retGrid;
-                    if (!ret.collided && ret.actuallydone) {
+                    if (!ret.collided && ret.actuallyDone) {
                         tilearray = addTile(tilearray).ret;
                     }
                     break;
@@ -293,12 +293,12 @@ void game(void)
         		pos.x = x;
         		pos.y = y;
         		vector2 topleft = getCoords(pos);
-        		SDL_Rect dst = {topleft.x,topleft.y,110,110};
-        		SDL_BlitScaled(imgs[tilearray[x][y]], NULL, screenSurface, &dst);
+        		SDL_Rect dst = {topleft.x,topleft.y,480/SQUARE_SIZE,480/SQUARE_SIZE};
+        		SDL_BlitScaled(imgs[tilearray[x][y]], nullptr, screenSurface, &dst);
     		}
     	}
         SDL_UpdateWindowSurface(window);
-        i++;
+        printMultidimensionalVector(tilearray,"FRAME END");
     }
 
     IMG_Quit();
@@ -306,9 +306,9 @@ void game(void)
     exit(1);
 }
 
-int main(void)
+int main()
 {
-    XVideoSetMode(640, 480, 32, REFRESH_DEFAULT);
+    XVideoSetMode(640, 480, 32, REFRESH_DEFAULT)
 
     game();
     return 0;
